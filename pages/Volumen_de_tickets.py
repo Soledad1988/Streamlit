@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 st.title("📈 Volumen de Tickets")
 
@@ -14,17 +16,12 @@ page_bg = """
 """
 st.markdown(page_bg, unsafe_allow_html=True)
 
-# ----------------- Estilo global de Matplotlib -----------------
-plt.style.use("dark_background")  # Fondo oscuro
-custom_color = "#FFD700"  # Dorado para títulos y etiquetas
-
 # ----------------- Contenedor para gráficos -----------------
 chart_card_style = """
-    <div style="background-color:#1E1E1E;
-                padding:20px;
+    <div style="padding:20px;
                 border-radius:15px;
                 text-align:center;
-                margin-top:20px;      /* <-- Espacio antes de empezar */
+                margin-top:30px;      /* <-- Espacio antes de empezar */
                 margin-bottom:20px;
                 box-shadow: 2px 2px 10px rgba(0,0,0,0.5);">
         {}
@@ -44,28 +41,24 @@ with st.sidebar:
     parPais = st.multiselect(
         "🌍 País",
         options=df['País'].unique(),
-        #default=df['País'].unique()  # todos seleccionados por defecto
     )
 
     # Categoría
     parCategoria = st.multiselect(
         "📂 Categoría",
         options=df['Categoría'].unique(),
-        #default=df['Categoría'].unique()
     )
 
     # Tipo
     parTipo = st.multiselect(
         "🎫 Tipo de Ticket",
         options=df['Tipo'].unique(),
-        #default=df['Tipo'].unique()
     )
 
     # Prioridad
     parPrioridad = st.multiselect(
         "⚠️ Prioridad",
         options=df['Prioridad'].unique(),
-        #default=df['Prioridad'].unique()
     )
 
 # ----------------- Aplicar filtros al dataframe -----------------
@@ -139,33 +132,40 @@ with c1:
     # Agrupar y contar tickets por País
     volumen_trabajo = df_filtrado['País'].value_counts().sort_values(ascending=True)
 
-    # Graficar horizontal
-    fig1 = plt.figure(figsize=(6,4))
-    bars = plt.barh(volumen_trabajo.index, volumen_trabajo.values)
+    # Normalizar valores entre 0 y 1 para aplicar el colormap
+    norm = mcolors.Normalize(vmin=min(volumen_trabajo.values), vmax=max(volumen_trabajo.values))
+
+    # Elegir colormap (ej: "Blues", "Greens", "Oranges", "Purples", etc.)
+    cmap = cm.get_cmap("Blues")
+
+    # Generar colores según los valores
+    bar_colors = [cmap(norm(value)) for value in volumen_trabajo.values]
+
+    # Graficar horizontal con colores
+    fig1, ax = plt.subplots(figsize=(6,4), facecolor="none")
+    bars = plt.barh(volumen_trabajo.index, volumen_trabajo.values, color=bar_colors)
 
     # Etiquetas y título
-    #plt.xlabel("Cantidad de Tickets")
-    #plt.ylabel("País")
     plt.title("Volumen de Tickets por País")
 
     # Poner etiquetas al final de cada barra usando width
     for bar in bars:
         width = bar.get_width()
         plt.text(
-            width,                              # posición x (al final de la barra)
+            width - (width*0.05),   # un poco adentro de la barra                          # posición x (al final de la barra)
             bar.get_y() + bar.get_height()/2,   # posición y (centro de la barra)
             str(width),                         # el valor
-            ha='left', va='center'              # alineación
+            va='center', ha='right', color='black', fontweight='bold'            # alineación
         )
 
+    ax.set_facecolor("#E0E0E0")  # el área del gráfico en gris
     plt.tight_layout()
     st.pyplot(fig1)
 
 with c2:
     # Mostrar en columnas
     # -----------------------------------------
-   # Mostrar tabla en Streamlit
-    #st.title("Distribución de Tickets por Prioridad") que sea mas chica la letra
+    # Mostrar tabla en Streamlit
     st.dataframe(tabla_paises.sort_values("Total_Problemas", ascending=False))
     
     height=300,   # alto fijo
@@ -180,25 +180,26 @@ with c1:
     tickets_por_etiqueta = df_filtrado['Etiqueta Primaria'].value_counts().head(9)
 
     # Gráfico de barras
-    fig2 = plt.figure(figsize=(6,4))
+    fig2, ax = plt.subplots(figsize=(6,4), facecolor="none")
     bars = plt.bar(tickets_por_etiqueta.index, tickets_por_etiqueta.values)
 
     # Etiquetas y título
-    plt.xlabel("Etiqueta Primaria")
-    plt.ylabel("Cantidad de Tickets")
     plt.title("Top 9 Etiquetas Primarias con más Tickets")
 
-    # Mostrar valores encima de cada barra
+    # Mostrar valores dentro de cada barra
     for bar in bars:
         height = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2,
-                height,
-                str(height),
-                ha='center', va='bottom')
+        plt.text(
+            bar.get_x() + bar.get_width()/2,   # posición X centrada
+            height/2,                          # posición Y a la mitad de la barra
+            str(height),                       # valor
+            ha='center', va='center',          # alineación centrada
+            color='black', fontweight='bold'   # estilo para contraste
+        )
 
     plt.xticks(rotation=45)  # rotar etiquetas si son largas
     plt.tight_layout()
-    
+    ax.set_facecolor("#E0E0E0")  # el área del gráfico en gris
     st.pyplot(fig2)
 
 with c2:
@@ -206,14 +207,23 @@ with c2:
     # Agrupar tickets por Prioridad
     prioridad_counts = df_filtrado['Prioridad'].value_counts()
 
+    # Normalizar valores para mapear a un colormap
+    norm = mcolors.Normalize(vmin=min(prioridad_counts.values), vmax=max(prioridad_counts.values))
+
+    cmap = cm.get_cmap("tab20")  
+
+    # Generar lista de colores según los valores
+    colors = [cmap(norm(value)) for value in prioridad_counts.values]
+
     # Gráfico de pastel
-    fig3 = plt.figure(figsize=(6,4))
+    fig3 = plt.figure(figsize=(5,3), facecolor="none")
     plt.pie(prioridad_counts,
             labels=prioridad_counts.index,
             autopct='%1.1f%%',
             startangle=90,
-            counterclock=False)
-
+            counterclock=False,
+            colors=colors)
+    ax.set_facecolor("#E0E0E0")  # el área del gráfico en gris
     plt.title("Distribución de Tickets por Prioridad")
     plt.axis('equal')  # mantiene proporciones
     st.pyplot(fig3)

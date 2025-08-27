@@ -1,6 +1,8 @@
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 #------------------------------Dashboard
 st.set_page_config(
@@ -127,17 +129,12 @@ with c3:
     st.markdown(card_style.format("⚠️ Tickets Alta Prioridad", cantidad_alta), unsafe_allow_html=True)
 
 #----------------------------------------------------------------------------------------------
-# ----------------- Estilo global de Matplotlib -----------------
-plt.style.use("dark_background")  # Fondo oscuro
-custom_color = "#FFD700"  # Dorado para títulos y etiquetas
-
 # ----------------- Contenedor para gráficos -----------------
 chart_card_style = """
-    <div style="background-color:#1E1E1E;
-                padding:20px;
+    <div style="padding:20px;
                 border-radius:15px;
                 text-align:center;
-                margin-top:20px;      /* <-- Espacio antes de empezar */
+                margin-top:30px;      /* <-- Espacio antes de empezar */
                 margin-bottom:20px;
                 box-shadow: 2px 2px 10px rgba(0,0,0,0.5);">
         {}
@@ -148,14 +145,21 @@ chart_card_style = """
 c1, c2 = st.columns([50,50])
 
 with c1:
-    # Frecuencia de tipos de tickets
+    # Frecuencia de tipos de tickets , color="#1f77b4"
     frecuencia_tickets = df_filtrado['Tipo'].value_counts().sort_values(ascending=False)
 
-    fig1, ax1 = plt.subplots(figsize=(8,5))
-    bars = ax1.bar(frecuencia_tickets.index, frecuencia_tickets.values, color="#1f77b4")
+    fig1, ax1= plt.subplots(figsize=(8,5),facecolor="none")
 
-    #ax1.set_xlabel("Tipo de Ticket")
-    #ax1.set_ylabel("Frecuencia")
+    # Normalizar valores entre 0 y 1 para aplicar el colormap
+    norm = mcolors.Normalize(vmin=min(frecuencia_tickets.values), vmax=max(frecuencia_tickets.values))
+
+    # Elegir colormap (ej: Blues, Oranges, Greens, Purples, etc.)
+    cmap = cm.get_cmap("Blues")
+
+    # Generar colores según los valores
+    bar_colors = [cmap(norm(value)) for value in frecuencia_tickets.values]
+    bars = ax1.bar(frecuencia_tickets.index, frecuencia_tickets.values, color = bar_colors)
+
     ax1.set_title("Frecuencia de Tipos de Tickets")
 
     # Etiquetas en las barras
@@ -167,26 +171,28 @@ with c1:
             str(height),
             ha='center', va='bottom'
         )
-
+    ax1.set_facecolor("#E0E0E0")  # el área del gráfico en gris
     st.pyplot(fig1)
 
 with c2:
     # Agrupar y contar tickets por Cola
     carga_trabajo = df_filtrado['Cola'].value_counts().sort_values(ascending=True)
 
-    fig2, ax2 = plt.subplots(figsize=(7,6))
-    bars = ax2.barh(carga_trabajo.index, carga_trabajo.values, color="#1f77b4")
+    fig2, ax2 = plt.subplots(figsize=(7,6), facecolor="none")
 
-    #ax2.set_xlabel("Cantidad de Tickets")
-    #ax2.set_ylabel("Cola de Soporte")
+    bars = ax2.barh(carga_trabajo.index, carga_trabajo.values)
+
     ax2.set_title("Cola de soporte con mayor carga de trabajo")
 
     # Etiquetas en las barras
     for bar in bars:
         width = bar.get_width()
-        ax2.text(width + 1, bar.get_y() + bar.get_height()/2,
-                 str(width), va='center')
+        ax2.text(width - (width*0.05),   # un poco adentro de la barra
+                bar.get_y() + bar.get_height()/2,
+                str(width),
+                va='center', ha='right', color='black', fontweight='bold')
 
+    ax2.set_facecolor("#E0E0E0")  # el área del gráfico en gris
     st.pyplot(fig2)
 
 # Declaramos 2 columnas en una proporción de 50% y 50%
@@ -200,11 +206,10 @@ with c1:
     promedio_por_prioridad = df_filtrado.groupby('Prioridad')['Duración (días)'].mean().sort_values(ascending=False)
 
     # Graficar barras verticales
-    fig3 = plt.figure(figsize=(8,5))
+    fig3, ax = plt.subplots(figsize=(8,5), facecolor="none")
+
     bars = plt.bar(promedio_por_prioridad.index, promedio_por_prioridad.values)
 
-    #plt.ylabel("Tiempo promedio de resolución (días)")
-    #plt.xlabel("Prioridad")
     plt.title("Tiempo promedio de resolución por prioridad")
 
     # Etiquetas arriba de cada barra
@@ -212,6 +217,8 @@ with c1:
         height = bar.get_height()
         plt.text(bar.get_x() + bar.get_width()/2, height,
                 f"{height:.2f}", ha='center', va='bottom')
+    
+    ax.set_facecolor("#E0E0E0")  # el área del gráfico en gris
     st.pyplot(fig3)
 
 with c2:
@@ -223,11 +230,20 @@ with c2:
     promedio_por_tipo = df_filtrado.groupby('Tipo')['Duración (días)'].mean().sort_values(ascending=False)
 
     # Graficar barras verticales
-    fig4 = plt.figure(figsize=(8,5))
-    bars = plt.bar(promedio_por_tipo.index, promedio_por_tipo.values)
+    fig4, ax = plt.subplots(figsize=(8,5), facecolor="none")
 
-    #plt.ylabel("Tiempo promedio de resolución")
-    #plt.xlabel("Tipo")
+
+    # Normalizar valores entre 0 y 1 para aplicar el colormap
+    norm = mcolors.Normalize(vmin=min(frecuencia_tickets.values), vmax=max(frecuencia_tickets.values))
+
+    # Elegir colormap (ej: Blues, Oranges, Greens, Purples, etc.)
+    cmap = cm.get_cmap("Blues")
+
+    # Generar colores según los valores
+    bar_colors = [cmap(norm(value)) for value in frecuencia_tickets.values]
+
+    bars = plt.bar(promedio_por_tipo.index, promedio_por_tipo.values, color = bar_colors)
+
     plt.title("Tiempo promedio de resolución por prioridad")
 
     # Etiquetas arriba de cada barra
@@ -235,4 +251,6 @@ with c2:
         height = bar.get_height()
         plt.text(bar.get_x() + bar.get_width()/2, height,
                 f"{height:.2f}", ha='center', va='bottom')
+    
+    ax.set_facecolor("#E0E0E0")  # el área del gráfico en gris  
     st.pyplot(fig4)
