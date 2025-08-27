@@ -1,0 +1,219 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+
+st.title("📈 Volumen de Tickets")
+
+# Fondo de toda la página
+page_bg = """
+<style>
+    .stApp {
+        background-color: #E0E0E0; /* gris oscuro */
+    }
+</style>
+"""
+st.markdown(page_bg, unsafe_allow_html=True)
+
+# ----------------- Estilo global de Matplotlib -----------------
+plt.style.use("dark_background")  # Fondo oscuro
+custom_color = "#FFD700"  # Dorado para títulos y etiquetas
+
+# ----------------- Contenedor para gráficos -----------------
+chart_card_style = """
+    <div style="background-color:#1E1E1E;
+                padding:20px;
+                border-radius:15px;
+                text-align:center;
+                margin-top:20px;      /* <-- Espacio antes de empezar */
+                margin-bottom:20px;
+                box-shadow: 2px 2px 10px rgba(0,0,0,0.5);">
+        {}
+    </div>
+"""
+
+# ⚠️ MUY IMPORTANTE:
+# Necesitás cargar el dataset igual que en la página principal
+df = pd.read_excel("C:/Users/brent/Downloads/IT_Support_Ticket_Spanish.xlsx")
+
+# Volvemos a aplicar los mismos filtros (Streamlit recuerda las selecciones en sidebar)
+# ----------------- Filtros en la barra lateral -----------------
+with st.sidebar:
+    st.header("🔍 Filtros")
+
+    # País
+    parPais = st.multiselect(
+        "🌍 País",
+        options=df['País'].unique(),
+        #default=df['País'].unique()  # todos seleccionados por defecto
+    )
+
+    # Categoría
+    parCategoria = st.multiselect(
+        "📂 Categoría",
+        options=df['Categoría'].unique(),
+        #default=df['Categoría'].unique()
+    )
+
+    # Tipo
+    parTipo = st.multiselect(
+        "🎫 Tipo de Ticket",
+        options=df['Tipo'].unique(),
+        #default=df['Tipo'].unique()
+    )
+
+    # Prioridad
+    parPrioridad = st.multiselect(
+        "⚠️ Prioridad",
+        options=df['Prioridad'].unique(),
+        #default=df['Prioridad'].unique()
+    )
+
+# ----------------- Aplicar filtros al dataframe -----------------
+df_filtrado = df.copy()
+
+if parPais:
+    df_filtrado = df_filtrado[df_filtrado['País'].isin(parPais)]
+
+if parCategoria:
+    df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(parCategoria)]
+
+if parTipo:
+    df_filtrado = df_filtrado[df_filtrado['Tipo'].isin(parTipo)]
+
+if parPrioridad:
+    df_filtrado = df_filtrado[df_filtrado['Prioridad'].isin(parPrioridad)]
+
+# ----------------- Aplicar filtros al dataframe -----------------
+df_filtrado = df.copy()
+
+if parPais:
+    df_filtrado = df_filtrado[df_filtrado['País'].isin(parPais)]
+
+if parCategoria:
+    df_filtrado = df_filtrado[df_filtrado['Categoría'].isin(parCategoria)]
+
+if parTipo:
+    df_filtrado = df_filtrado[df_filtrado['Tipo'].isin(parTipo)]
+
+if parPrioridad:
+    df_filtrado = df_filtrado[df_filtrado['Prioridad'].isin(parPrioridad)]
+
+#-------------------------------------------------------------------------------
+
+# ----------------- CONTENIDO DE ESTA PÁGINA -----------------
+
+# Calculos
+# Calcular tabla por País
+# -----------------------------------------
+
+# Aseguramos que las fechas estén en formato datetime
+df_filtrado['Fecha'] = pd.to_datetime(df_filtrado['Fecha'])
+df_filtrado['Fecha de Resolución'] = pd.to_datetime(df_filtrado['Fecha de Resolución'])
+
+# Crear columna duración en días
+df_filtrado['Duración (días)'] = (
+    df_filtrado['Fecha de Resolución'] - df_filtrado['Fecha']
+).dt.total_seconds() / (3600*24)
+
+# Agrupar por País
+tabla_paises = (
+    df_filtrado
+    .groupby("País")
+    .agg(
+        Total_Problemas = ("ID de Ticket", "count"),
+        Tiempo_Promedio_Resolucion = ("Duración (días)", "mean")
+    )
+    .reset_index()
+)
+
+# Redondear el promedio a 2 decimales
+tabla_paises["Tiempo_Promedio_Resolucion"] = tabla_paises["Tiempo_Promedio_Resolucion"].round(2)
+
+#-------------------------------------------------------------------------------
+
+# Declaramos 2 columnas en una proporción de 50% y 50%
+c1, c2 = st.columns([50,50])
+
+with c1:
+    # Volumen de Tickets por pais
+    # Agrupar y contar tickets por País
+    volumen_trabajo = df_filtrado['País'].value_counts().sort_values(ascending=True)
+
+    # Graficar horizontal
+    fig1 = plt.figure(figsize=(6,4))
+    bars = plt.barh(volumen_trabajo.index, volumen_trabajo.values)
+
+    # Etiquetas y título
+    #plt.xlabel("Cantidad de Tickets")
+    #plt.ylabel("País")
+    plt.title("Volumen de Tickets por País")
+
+    # Poner etiquetas al final de cada barra usando width
+    for bar in bars:
+        width = bar.get_width()
+        plt.text(
+            width,                              # posición x (al final de la barra)
+            bar.get_y() + bar.get_height()/2,   # posición y (centro de la barra)
+            str(width),                         # el valor
+            ha='left', va='center'              # alineación
+        )
+
+    plt.tight_layout()
+    st.pyplot(fig1)
+
+with c2:
+    # Mostrar en columnas
+    # -----------------------------------------
+   # Mostrar tabla en Streamlit
+    #st.title("Distribución de Tickets por Prioridad") que sea mas chica la letra
+    st.dataframe(tabla_paises.sort_values("Total_Problemas", ascending=False))
+    
+    height=300,   # alto fijo
+    use_container_width=True  # ajusta al ancho de la columna
+
+
+# Declaramos 2 columnas en una proporción de 50% y 50%
+c1, c2 = st.columns([50,50])
+
+with c1:
+    # Contar cantidad de tickets por Etiqueta Primaria y tomar solo los 9 primeros
+    tickets_por_etiqueta = df_filtrado['Etiqueta Primaria'].value_counts().head(9)
+
+    # Gráfico de barras
+    fig2 = plt.figure(figsize=(6,4))
+    bars = plt.bar(tickets_por_etiqueta.index, tickets_por_etiqueta.values)
+
+    # Etiquetas y título
+    plt.xlabel("Etiqueta Primaria")
+    plt.ylabel("Cantidad de Tickets")
+    plt.title("Top 9 Etiquetas Primarias con más Tickets")
+
+    # Mostrar valores encima de cada barra
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2,
+                height,
+                str(height),
+                ha='center', va='bottom')
+
+    plt.xticks(rotation=45)  # rotar etiquetas si son largas
+    plt.tight_layout()
+    
+    st.pyplot(fig2)
+
+with c2:
+    # Prioridad por Cantidad Tickets
+    # Agrupar tickets por Prioridad
+    prioridad_counts = df_filtrado['Prioridad'].value_counts()
+
+    # Gráfico de pastel
+    fig3 = plt.figure(figsize=(6,4))
+    plt.pie(prioridad_counts,
+            labels=prioridad_counts.index,
+            autopct='%1.1f%%',
+            startangle=90,
+            counterclock=False)
+
+    plt.title("Distribución de Tickets por Prioridad")
+    plt.axis('equal')  # mantiene proporciones
+    st.pyplot(fig3)
