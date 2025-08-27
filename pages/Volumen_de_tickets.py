@@ -30,7 +30,7 @@ chart_card_style = """
 
 # ⚠️ MUY IMPORTANTE:
 # Necesitás cargar el dataset igual que en la página principal
-df = pd.read_excel("Data\IT_Support_Ticket_Spanish.xlsx")
+df = pd.read_excel("Data/IT_Support_Ticket_Spanish.xlsx")
 
 # Volvemos a aplicar los mismos filtros (Streamlit recuerda las selecciones en sidebar)
 # ----------------- Filtros en la barra lateral -----------------
