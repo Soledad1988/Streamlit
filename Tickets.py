@@ -15,7 +15,7 @@ st.set_page_config(
 st.title("📈 Optimización del rendimiento del soporte de TI")
 
 # Cargamos el dataset
-df = pd.read_excel("Data\IT_Support_Ticket_Spanish.xlsx")
+df = pd.read_excel("Data/IT_Support_Ticket_Spanish.xlsx")
 
 # ----------------- Filtros en la barra lateral -----------------
 with st.sidebar:
