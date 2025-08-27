@@ -76,3 +76,17 @@ if parTipo:
 
 if parPrioridad:
     df_filtrado = df_filtrado[df_filtrado['Prioridad'].isin(parPrioridad)]
+
+#-------------------------------------------------------------------------------
+# Pasar fecha a formato datetime
+df_filtrado['Fecha'] = pd.to_datetime(df_filtrado['Fecha'])
+df_filtrado['Fecha de Resolución'] = pd.to_datetime(df_filtrado['Fecha de Resolución'])
+
+# Crear columna de diferencia
+df_filtrado['Tiempo de Resolución'] = df_filtrado['Fecha de Resolución'] - df_filtrado['Fecha']
+
+# ----------------- Cálculos -----------------
+total_ticket = df_filtrado['ID de Ticket'].count()
+tiempo_promedio_resolucion = df_filtrado['Tiempo de Resolución'].mean()
+tiempo_promedio_dias = round(tiempo_promedio_resolucion.total_seconds() / (3600*24), 2)
+cantidad_alta = df_filtrado[df_filtrado['Prioridad'] == 'high'].shape[0]
